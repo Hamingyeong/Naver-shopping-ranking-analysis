@@ -17,25 +17,23 @@
 
 ### 주요 결과
 
-| 지표 | 키보드 (2단계 RF) | 의자 (2단계 Logistic) |
-|------|-----------------|----------------------|
-| AP | 0.645 | 0.645 |
-| NDCG@38 | 0.664 | 0.659 |
-| 회귀 R² | 0.313 | 0.412 |
+| 지표 | 키보드 (2단계 RF) | 의자 (2단계 RF) |
+|------|-----------------|----------------|
+| AP | 0.684 | 0.693 |
+| F1 | 0.580 | 0.652 |
+| 회귀 R² | 0.499 | 0.474 |
 
 - **공통**: review_count, is_lowest_price, tomorrow_delivery가 두 카테고리 모두 상위노출 패턴에서 양(+)의 방향
 - **키보드**: 브랜드 인지도(brand_fame_log)가 리뷰 다음으로 중요한 패턴 요인
-- **의자**: 가격 경쟁력(is_lowest_price, price)이 핵심. 리뷰 제외 시 AP 낙폭이 키보드보다 훨씬 큼
+- **의자**: 가격 경쟁력(is_lowest_price, price)과 평점(rating)이 핵심. 리뷰 제외 시 AP 낙폭이 키보드보다 훨씬 큼 → 리뷰 의존도가 더 강한 카테고리
 
 ---
 
 ## 프로젝트 구조
 .
 ├── README.md
-├── config.py                        # API 키 설정 (GitHub에 올리지 않음)
-├── 01_brand_search_volume.py        # 브랜드 검색량 수집 (네이버 검색광고 API)
-├── 02_preprocessing.py              # 키보드 데이터 전처리
-└── 03_modeling.py                   # 키보드 + 의자 통합 모델링
+├── config.py              # API 키 설정 (GitHub에 올리지 않음)
+└── modeling_final.py      # 키보드 + 의자 통합 모델링
 
 ---
 
@@ -61,74 +59,46 @@ pip install pandas numpy scikit-learn lightgbm shap matplotlib requests
 
 ---
 
-## 실행 순서
+## 실행 방법
 
-### Step 0. API 키 설정
+### 사전 준비
 
-네이버 검색광고 API 키를 발급받고 `config.py` 파일을 생성합니다.
+아래 두 파일이 `BASE_DIR`에 있어야 합니다.
+naver_keyboard_merged_final.csv   # 키보드 크롤링 데이터
+naver_chair_merged_final.csv      # 의자 크롤링 데이터
 
-API 키 발급: https://developers.naver.com/docs/searchad/api/
+데이터는 네이버 쇼핑에서 직접 수집한 크롤링 데이터로, 저작권 및 네이버 이용약관에 따라 공개하지 않습니다.
+
+brand_fame_log(브랜드 인지도 feature)는 네이버 검색광고 API로 별도 수집합니다. API 키가 없으면 데이터 내 브랜드 등장 빈도(brand_dataset_count_log)로 자동 대체됩니다.
+
+### 모델링 실행
+
+`modeling_final.py` 상단의 경로를 본인 환경에 맞게 수정하세요.
 
 ```python
-# config.py  ← 이 파일은 GitHub에 올리지 않습니다
-API_KEY     = "실제_API_KEY"
-SECRET_KEY  = "실제_SECRET_KEY"
-CUSTOMER_ID = "실제_CUSTOMER_ID"
+BASE_DIR = r"c:\capstone design"   # ← 수정
 ```
-
-### Step 1. 브랜드 검색량 수집
 
 ```bash
-python 01_brand_search_volume.py
+python modeling_final.py
 ```
 
-키보드와 의자 두 카테고리를 순서대로 처리합니다.
+키보드와 의자를 순서대로 처리하며, 결과는 `combined_modeling_results/` 폴더에 저장됩니다.
 
-**실행 전 확인사항:**
-- `BASE_DIR` 경로가 본인 환경에 맞게 설정되어 있는지 확인
-- `naver_keyboard_merged_final.csv`, `naver_chair_merged_final.csv` 파일이 `BASE_DIR`에 있는지 확인
-
-출력 파일:
-naver_keyboard_with_features.csv   # brand_fame_log 포함 키보드 데이터
-naver_chair_with_features.csv      # brand_fame_log 포함 의자 데이터
-keyboard_brand_search_volume.csv   # 키보드 브랜드별 검색량
-chair_brand_search_volume.csv      # 의자 브랜드별 검색량
-
-실행 후 `[확인필요]` 표시가 뜨는 브랜드는 `rel_keyword` 컬럼을 확인하여 엉뚱한 결과가 잡힌 경우 수동으로 0 수정.
-
-### Step 2. 전처리 (키보드)
-
-```bash
-python 02_preprocessing.py
-```
-
-의자 전처리는 `03_modeling.py` 내부에 통합되어 있어 별도 실행 불필요.
-
-출력 파일:
-naver_keyboard_preprocessed.csv
-
-### Step 3. 통합 모델링
-
-```bash
-python 03_modeling.py
-```
-
-**실행 전 확인사항:**
-- `BASE_DIR` 경로 수정
-
-출력 폴더 `combined_modeling_results/`:
-all_classification.csv                    # 전체 분류 성능 (키보드+의자, 랭킹지표 포함)
-all_regression.csv                        # 전체 회귀 성능
-keyboard_classification.csv              # 키보드 분류 성능
-keyboard_regression.csv                  # 키보드 회귀 성능
-keyboard_logistic_coef.csv / .png        # 키보드 LR 계수
-keyboard_ridge_coef.csv / .png           # 키보드 Ridge 계수
-keyboard_lasso_coef.csv                  # 키보드 Lasso 선택 feature
-keyboard_cls_shap_beeswarm.png           # 키보드 SHAP (리뷰포함)
-keyboard_cls_no_review_shap_beeswarm.png # 키보드 SHAP (리뷰제외)
-keyboard_reg_shap_beeswarm.png           # 키보드 회귀 SHAP
-keyboard_keyword_results.csv             # 키보드 키워드별 성능
-chair_*                                  # 의자 동일 구조
+### 출력 파일
+combined_modeling_results/
+├── all_classification.csv              # 전체 분류 성능 (키보드+의자)
+├── all_regression.csv                  # 전체 회귀 성능
+├── keyboard_classification.csv         # 키보드 분류 성능
+├── keyboard_regression.csv             # 키보드 회귀 성능
+├── keyboard_logistic_coef.csv / .png   # 키보드 LR 계수
+├── keyboard_ridge_coef.csv / .png      # 키보드 Ridge 계수
+├── keyboard_lasso_coef.csv             # 키보드 Lasso 선택 feature
+├── keyboard_cls_shap_beeswarm.png      # 키보드 SHAP (리뷰포함)
+├── keyboard_cls_no_review_shap_beeswarm.png  # 키보드 SHAP (리뷰제외)
+├── keyboard_reg_shap_beeswarm.png      # 키보드 회귀 SHAP
+├── keyboard_keyword_results.csv        # 키보드 키워드별 성능
+└── chair_*                             # 의자 동일 구조
 
 ---
 
@@ -137,7 +107,7 @@ chair_*                                  # 의자 동일 구조
 ### 모델 구조 (2단계)
 
 top38 비율이 8%로 클래스 불균형이 심각하여 2단계 모델을 설계했다.
-전체 2,385개 상품
+전체 데이터
 ↓
 1단계: top100 예측 (positive 21%, 학습 안정)
 ↓
@@ -147,24 +117,36 @@ top100 후보군 500개 (후보군 내 top38 비율 38%)
 
 ### 교차검증
 
-동일 상품(nv_mid)이 여러 키워드에 중복 등장하므로 **GroupKFold(5-fold)** 적용. 같은 상품이 학습/평가 데이터에 동시에 포함되지 않도록 처리했다.
+StratifiedKFold(5-fold, shuffle=True)를 적용했다. 같은 키워드 내 중복 상품은 크롤링 방식상 존재하지 않으며, 다른 키워드 간 동일 상품은 키워드마다 rank_score가 다른 독립 관측값으로 처리했다.
 
 ### 평가지표
 
 | 지표 | 설명 |
 |------|------|
 | AP | Average Precision |
-| P@38 | 모델이 top38로 예측한 38개 중 실제 top38 비율 |
-| R@38 | 실제 top38 중 모델이 예측한 비율 |
-| NDCG@38 | 순위 품질 — 상위에 실제 top38이 얼마나 집중됐는지 |
+| F1 | 정밀도와 재현율의 조화평균 |
+| ROC-AUC | 분류 전반적 성능 |
 | R² | 회귀 설명력 |
+
+### 주요 feature
+
+| feature | 설명 |
+|---------|------|
+| review_count_log | 리뷰수 log1p 변환 |
+| brand_fame_log | 네이버 검색광고 API 기반 브랜드 인지도 |
+| price_competitiveness | 키워드 내 상대적 가격 경쟁력 |
+| is_lowest_price | 최저가 여부 |
+| tomorrow_delivery | 내일배송 여부 |
+| rating_z_score | 키워드 내 상대 평점 |
+| title_kw_ratio | 상품명 내 키워드 포함 비율 |
+| category4_clean | 세부 카테고리 (one-hot) |
 
 ---
 
 ## 한계
 
 - **review_count 내생성**: 리뷰수와 상위노출 간 인과관계 구분 불가. 상위노출 상품에서 반복적으로 나타나는 패턴으로 해석
-- **R² 한계**: CTR, 체류시간 등 네이버 내부 지표 없이는 구조적 한계 존재 (R² 0.31~0.41)
+- **R² 한계**: CTR, 체류시간 등 네이버 내부 지표 없이는 구조적 한계 존재 (R² 0.47~0.50)
 - **brand_fame_log**: 대표 키워드 기준 검색량이며 proxy 지표로 해석 필요
 
 ---
