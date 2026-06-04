@@ -36,7 +36,7 @@ Naver-shopping-ranking-analysis/
 │       ├── naver_keyboard_with_features.csv
 │       └── naver_chair_with_features.csv
 │
-└── results/
+└── combined_modeling_results/
     └── 모델 실행 후 생성되는 결과 파일
 ```
 
