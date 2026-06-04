@@ -40,7 +40,7 @@ Naver-shopping-ranking-analysis/
 │   ├── 03_eda_charts.py
 │   └── 04_modeling_final.py
 │
-└── results/
+└── combined_modeling_results/
 └── eda_results/
         ├── heatmap.png
         ├── boxplot.png
@@ -48,7 +48,7 @@ Naver-shopping-ranking-analysis/
 ```
 
 본 저장소에는 데이터 수집, 전처리, EDA, 모델링에 사용한 코드를 함께 정리하였다.
-모델링 결과는 result 파일에 포함하였고, EDA 시각화 결과는 `eda_results/` 폴더에 포함하였다.
+모델링 결과는 combined_modeling_result 파일에 포함하였고, EDA 시각화 결과는 `eda_results/` 폴더에 포함하였다.
 
 ---
 
